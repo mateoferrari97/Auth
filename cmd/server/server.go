@@ -1,4 +1,4 @@
-package processor
+package server
 
 import (
 	"github.com/gorilla/mux"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const _defaultPort = "8081"
+const defaultPort = "8081"
 
 type Server struct {
 	router *mux.Router
@@ -20,13 +20,18 @@ func (s *Server) Run(port string) {
 	port = configPort(port)
 
 	log.Printf("Listening on port %s", port)
+
 	http.ListenAndServe(":" + port, s.router)
+}
+
+func (s *Server) Wrap(method string, pattern string, handler http.HandlerFunc) {
+	s.router.HandleFunc(pattern, handler).Methods(method)
 }
 
 func configPort(port string) string {
 	if port == "" {
-		port = _defaultPort
-		log.Printf("defaulting to port %s", port)
+		port = defaultPort
+		log.Printf("Defaulting to port %s", port)
 	}
 
 	if string(port[0]) == ":" {

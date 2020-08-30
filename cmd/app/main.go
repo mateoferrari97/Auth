@@ -1,12 +1,18 @@
 package main
 
 import (
-	"github.com/mateoferrari97/auth/cmd/processor"
+	"github.com/mateoferrari97/auth/cmd/app/internal"
+	"github.com/mateoferrari97/auth/cmd/server"
 )
 
 func main() {
-	s := processor.NewServer()
-	s.Ping()
+	server := server.NewServer()
+	handler := internal.NewHandler(server)
+	service := internal.NewService()
 
-	s.Run(":8081")
+	handler.Ping()
+	handler.RouteHome(service.Authorize)
+	handler.RouteRegister(service.Register)
+
+	server.Run(":8081")
 }
