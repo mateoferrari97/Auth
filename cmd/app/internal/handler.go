@@ -2,9 +2,14 @@ package internal
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"gopkg.in/go-playground/validator.v9"
 	"net/http"
+	"strings"
 )
+
+var _v = validator.New()
 
 type Wrapper interface {
 	Wrap(method string, pattern string, handler http.HandlerFunc)
@@ -49,9 +54,9 @@ func (h *Handler) RouteHome(handler AuthorizeHandler) {
 }
 
 type RegisterRequest struct {
-	Name string `json:"name"`
-	Email string `json:"email"`
-	Password string `json:"password"`
+	Name string `json:"name" validate:"required"`
+	Email string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type RegisterHandler func(req RegisterRequest) (string, error)
@@ -61,6 +66,11 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 		var req RegisterRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, fmt.Sprintf("can't process body from client: %v", err), http.StatusUnprocessableEntity)
+			return
+		}
+
+		if err := validateRegisterInformation(req); err != nil {
+			http.Error(w, fmt.Sprintf("validating user information for his creation: %v", err), http.StatusBadRequest)
 			return
 		}
 
@@ -80,6 +90,39 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 	}
 
 	h.Wrap(http.MethodPost, "/register", wrapH)
+}
+
+func validateRegisterInformation(registerInformation RegisterRequest) error {
+	if err := _v.Struct(registerInformation); err != nil {
+		return err
+	}
+
+	return validatePassword(registerInformation.Password)
+}
+
+func validatePassword(password string) error {
+	var validSequences = []string{
+		"abcdefghijklmñopqrstuvwxyz",
+		"ABCDEFGHIJKLMÑOPQRSTUUVWXYZ",
+		"123456789",
+		"!#$%&*?@",
+	}
+
+	for _, sequence := range validSequences {
+		hasCharacter := false
+		for _, c := range sequence {
+			if strings.ContainsRune(password, c) {
+				hasCharacter = true
+				break
+			}
+		}
+
+		if !hasCharacter {
+			return errors.New("password is weak")
+		}
+	}
+
+	return nil
 }
 
 type LoginWithGoogleHandler func() string
