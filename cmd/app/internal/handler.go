@@ -92,12 +92,12 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 	h.Wrap(http.MethodPost, "/register", wrapH)
 }
 
-func validateRegisterInformation(registerInformation RegisterRequest) error {
-	if err := _v.Struct(registerInformation); err != nil {
+func validateRegisterInformation(userInformation RegisterRequest) error {
+	if err := _v.Struct(userInformation); err != nil {
 		return err
 	}
 
-	return validatePassword(registerInformation.Password)
+	return validatePassword(userInformation.Password)
 }
 
 func validatePassword(password string) error {
