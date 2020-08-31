@@ -20,7 +20,7 @@ func NewHandler(wrapper Wrapper) *Handler {
 
 func (h *Handler) Ping() {
 	wrapH := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Pong")
+		fmt.Fprintln(w, "pong")
 	}
 
 	h.Wrap(http.MethodGet, "/ping", wrapH)

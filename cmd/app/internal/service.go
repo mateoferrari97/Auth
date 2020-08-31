@@ -9,16 +9,17 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"net/http"
+	"os"
 	"time"
 )
 
-const mySigningKey = "secret"
+var mySigningKey = os.Getenv("PRIVATE_KEY")
 
 var config = &oauth2.Config{
-	ClientID:     "176380119677-5r99e6b9jqho14cvfpc0inmeb1m48gkr.apps.googleusercontent.com",
-	ClientSecret: "h-D4PY8U_-uu-JInbPwDQ_Es",
+	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	Endpoint:     google.Endpoint,
-	RedirectURL:  "http://localhost:8081/login/google/callback",
+	RedirectURL:  fmt.Sprintf("http://localhost:8081/login/google/callback"),
 	Scopes:       []string{
 		"https://www.googleapis.com/auth/userinfo.email",
 	},
