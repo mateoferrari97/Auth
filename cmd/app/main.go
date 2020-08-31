@@ -13,6 +13,8 @@ func main() {
 	handler.Ping()
 	handler.RouteHome(service.Authorize)
 	handler.RouteRegister(service.Register)
+	handler.RouteLoginWithGoogle(service.LoginWithGoogle)
+	handler.RouteLoginWithGoogleCallback(service.LoginWithGoogleCallback)
 
 	server.Run(":8081")
 }

@@ -38,7 +38,7 @@ func (h *Handler) RouteHome(handler AuthorizeHandler) {
 
 		user, err := handler(c.Value)
 		if err != nil {
-			http.Redirect(w, r, "/unauthorized", http.StatusPermanentRedirect)
+			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
@@ -66,17 +66,57 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 
 		token, err := handler(req)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("creating token: %v", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("creating user: %v", err), http.StatusInternalServerError)
 			return
 		}
 
 		c := &http.Cookie{
 			Name:       "authorization",
 			Value:      token,
+			Path: "/",
 		}
 
 		http.SetCookie(w, c)
 	}
 
 	h.Wrap(http.MethodPost, "/register", wrapH)
+}
+
+type LoginWithGoogleHandler func() string
+
+func (h *Handler) RouteLoginWithGoogle(handler LoginWithGoogleHandler) {
+	wrapH := func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, handler(), http.StatusTemporaryRedirect)
+	}
+
+	h.Wrap(http.MethodGet, "/login/google", wrapH)
+}
+
+type LoginWithGoogleCallbackHandler func(code string) (string, error)
+
+func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHandler) {
+	wrapH := func(w http.ResponseWriter, r *http.Request) {
+		code := r.FormValue("code")
+		if code == "" {
+			http.Error(w, "code is required", http.StatusBadRequest)
+			return
+		}
+
+		token, err := handler(code)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("logging user with google: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		c := &http.Cookie{
+			Name:       "authorization",
+			Value:      token,
+			Path: "/",
+		}
+
+		http.SetCookie(w, c)
+		http.Redirect(w, r, "/", http.StatusPermanentRedirect)
+	}
+
+	h.Wrap(http.MethodGet, "/login/google/callback", wrapH)
 }

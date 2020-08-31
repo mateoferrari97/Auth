@@ -1,18 +1,28 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"net/http"
 	"time"
 )
 
 const mySigningKey = "secret"
 
-const (
-	ErrUnauthorized = errors.New("")
-)
+var config = &oauth2.Config{
+	ClientID:     "176380119677-5r99e6b9jqho14cvfpc0inmeb1m48gkr.apps.googleusercontent.com",
+	ClientSecret: "h-D4PY8U_-uu-JInbPwDQ_Es",
+	Endpoint:     google.Endpoint,
+	RedirectURL:  "http://localhost:8081/login/google/callback",
+	Scopes:       []string{
+		"https://www.googleapis.com/auth/userinfo.email",
+	},
+}
 
 type Service struct {
 	DB map[string]User
@@ -33,6 +43,10 @@ func NewService() *Service{
 }
 
 func (s *Service) Register(newUser RegisterRequest) (string, error){
+	if _, exist := s.DB[newUser.Email]; exist {
+		return "", fmt.Errorf("user already exists")
+	}
+
 	user := User{
 		Name:      newUser.Name,
 		Email:     newUser.Email,
@@ -105,4 +119,43 @@ func (s *Service) Authorize(token string) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (s *Service) LoginWithGoogle() string {
+	return config.AuthCodeURL("random")
+}
+
+func (s *Service) LoginWithGoogleCallback(code string) (string, error) {
+	token, err := config.Exchange(context.TODO(), code)
+	if err != nil {
+		return "", fmt.Errorf("getting token from google: %v", err)
+	}
+
+	path := fmt.Sprintf("https://www.googleapis.com/oauth2/v2/userinfo?access_token=%s", token.AccessToken)
+	resp, err := http.Get(path)
+	if err != nil {
+		return "", fmt.Errorf("getting user information: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	var userInformation struct {
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&userInformation); err != nil {
+		return "", fmt.Errorf("decoding user information from google: %v", err)
+	}
+
+	user, exist := s.DB[userInformation.Email]
+	if !exist {
+		return "", fmt.Errorf("user with email %s: not found", userInformation.Email)
+	}
+
+	t, err := newJWT(user)
+	if err != nil {
+		return "", fmt.Errorf("authorizing user: %v", err)
+	}
+
+	return t, nil
 }
