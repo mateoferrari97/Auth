@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gofrs/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"net/http"
@@ -30,6 +32,7 @@ type Service struct {
 }
 
 type User struct {
+	ID string `json:"id"`
 	Name string `json:"name"`
 	Email string `json:"email"`
 	Password string `json:"password"`
@@ -48,10 +51,21 @@ func (s *Service) Register(newUser RegisterRequest) (string, error){
 		return "", fmt.Errorf("user already exists")
 	}
 
+	id, err := uuid.NewV4()
+	if err != nil {
+		return "", fmt.Errorf("creating user: %v", err)
+	}
+
+	b, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 10)
+	if err != nil {
+		return "", fmt.Errorf("securing password: %v", err)
+	}
+
 	user := User{
+		ID: id.String(),
 		Name:      newUser.Name,
 		Email:     newUser.Email,
-		Password:  newUser.Password,
+		Password:  string(b),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
