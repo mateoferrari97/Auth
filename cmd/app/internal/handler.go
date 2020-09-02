@@ -4,9 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"strings"
+
+	"gopkg.in/go-playground/validator.v9"
+)
+
+const (
+	getHome                    = "/"
+	getPing                    = "/ping"
+	postUsers                  = "/users"
+	getLoginWithGoogle         = "/login/google"
+	getLoginWithGoogleCallback = "/login/google/callback"
 )
 
 var _v = validator.New()
@@ -28,7 +37,7 @@ func (h *Handler) Ping() {
 		fmt.Fprintln(w, "pong")
 	}
 
-	h.Wrap(http.MethodGet, "/ping", wrapH)
+	h.Wrap(http.MethodGet, getPing, wrapH)
 }
 
 type AuthorizeHandler func(token string) (User, error)
@@ -37,7 +46,7 @@ func (h *Handler) RouteHome(handler AuthorizeHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("authorization")
 		if err != nil {
-			http.Error(w, fmt.Sprintf("unauthorized: %v", err), http.StatusForbidden)
+			http.Redirect(w, r, getLoginWithGoogle, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -50,7 +59,7 @@ func (h *Handler) RouteHome(handler AuthorizeHandler) {
 		fmt.Fprintf(w, "Welcome, %s.\n Email: %s\n ID: %s\n Password: %s", user.Name, user.Email, user.ID, user.Password)
 	}
 
-	h.Wrap(http.MethodGet, "/", wrapH)
+	h.Wrap(http.MethodGet, getHome, wrapH)
 }
 
 type RegisterRequest struct {
@@ -83,13 +92,13 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 		c := &http.Cookie{
 			Name:  "authorization",
 			Value: token,
-			Path:  "/",
+			Path:  getHome,
 		}
 
 		http.SetCookie(w, c)
 	}
 
-	h.Wrap(http.MethodPost, "/users", wrapH)
+	h.Wrap(http.MethodPost, postUsers, wrapH)
 }
 
 func validateRegisterInformation(userInformation RegisterRequest) error {
@@ -132,7 +141,7 @@ func (h *Handler) RouteLoginWithGoogle(handler LoginWithGoogleHandler) {
 		http.Redirect(w, r, handler(), http.StatusTemporaryRedirect)
 	}
 
-	h.Wrap(http.MethodGet, "/login/google", wrapH)
+	h.Wrap(http.MethodGet, getLoginWithGoogle, wrapH)
 }
 
 type LoginWithGoogleCallbackHandler func(code string) (string, error)
@@ -154,12 +163,12 @@ func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHa
 		c := &http.Cookie{
 			Name:  "authorization",
 			Value: token,
-			Path:  "/",
+			Path:  getHome,
 		}
 
 		http.SetCookie(w, c)
-		http.Redirect(w, r, "/", http.StatusPermanentRedirect)
+		http.Redirect(w, r, getHome, http.StatusPermanentRedirect)
 	}
 
-	h.Wrap(http.MethodGet, "/login/google/callback", wrapH)
+	h.Wrap(http.MethodGet, getLoginWithGoogleCallback, wrapH)
 }
