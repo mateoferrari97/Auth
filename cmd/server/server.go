@@ -21,7 +21,7 @@ func (s *Server) Run(port string) {
 
 	log.Printf("Listening on port %s", port)
 
-	http.ListenAndServe(":" + port, s.router)
+	http.ListenAndServe(":"+port, s.router)
 }
 
 func (s *Server) Wrap(method string, pattern string, handler http.HandlerFunc) {
