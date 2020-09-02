@@ -17,12 +17,14 @@ import (
 
 var mySigningKey = os.Getenv("PRIVATE_KEY")
 
+const state = "random"
+
 var config = &oauth2.Config{
 	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	Endpoint:     google.Endpoint,
 	RedirectURL:  fmt.Sprintf("http://localhost:8081/login/google/callback"),
-	Scopes:       []string{
+	Scopes: []string{
 		"https://www.googleapis.com/auth/userinfo.email",
 	},
 }
@@ -32,21 +34,21 @@ type Service struct {
 }
 
 type User struct {
-	ID string `json:"id"`
-	Name string `json:"name"`
-	Email string `json:"email"`
-	Password string `json:"password"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func NewService() *Service{
+func NewService() *Service {
 	return &Service{
 		DB: make(map[string]User),
 	}
 }
 
-func (s *Service) Register(newUser RegisterRequest) (string, error){
+func (s *Service) Register(newUser RegisterRequest) (string, error) {
 	if _, exist := s.DB[newUser.Email]; exist {
 		return "", fmt.Errorf("user already exists")
 	}
@@ -62,7 +64,7 @@ func (s *Service) Register(newUser RegisterRequest) (string, error){
 	}
 
 	user := User{
-		ID: id.String(),
+		ID:        id.String(),
 		Name:      newUser.Name,
 		Email:     newUser.Email,
 		Password:  string(b),
@@ -80,7 +82,7 @@ func (s *Service) Register(newUser RegisterRequest) (string, error){
 	return token, nil
 }
 
-func newJWT(user User) (string, error){
+func newJWT(user User) (string, error) {
 	u, err := json.Marshal(user)
 	if err != nil {
 		return "", fmt.Errorf("marshaling user: %v", err)
@@ -88,7 +90,7 @@ func newJWT(user User) (string, error){
 
 	claims := &jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
-		Subject:    string(u),
+		Subject:   string(u),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -137,7 +139,7 @@ func (s *Service) Authorize(token string) (User, error) {
 }
 
 func (s *Service) LoginWithGoogle() string {
-	return config.AuthCodeURL("random")
+	return config.AuthCodeURL(state)
 }
 
 func (s *Service) LoginWithGoogleCallback(code string) (string, error) {

@@ -54,8 +54,8 @@ func (h *Handler) RouteHome(handler AuthorizeHandler) {
 }
 
 type RegisterRequest struct {
-	Name string `json:"name" validate:"required"`
-	Email string `json:"email" validate:"required,email"`
+	Name     string `json:"name" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
 
@@ -81,15 +81,15 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 		}
 
 		c := &http.Cookie{
-			Name:       "authorization",
-			Value:      token,
-			Path: "/",
+			Name:  "authorization",
+			Value: token,
+			Path:  "/",
 		}
 
 		http.SetCookie(w, c)
 	}
 
-	h.Wrap(http.MethodPost, "/register", wrapH)
+	h.Wrap(http.MethodPost, "/users", wrapH)
 }
 
 func validateRegisterInformation(userInformation RegisterRequest) error {
@@ -152,9 +152,9 @@ func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHa
 		}
 
 		c := &http.Cookie{
-			Name:       "authorization",
-			Value:      token,
-			Path: "/",
+			Name:  "authorization",
+			Value: token,
+			Path:  "/",
 		}
 
 		http.SetCookie(w, c)
