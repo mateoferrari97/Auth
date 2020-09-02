@@ -47,7 +47,7 @@ func (h *Handler) RouteHome(handler AuthorizeHandler) {
 			return
 		}
 
-		fmt.Fprint(w, fmt.Sprintf("Welcome, %s.\n Email: %s\n ID: %s\n Password: %s", user.Name, user.Email, user.ID, user.Password))
+		fmt.Fprintf(w, "Welcome, %s.\n Email: %s\n ID: %s\n Password: %s", user.Name, user.Email, user.ID, user.Password)
 	}
 
 	h.Wrap(http.MethodGet, "/", wrapH)

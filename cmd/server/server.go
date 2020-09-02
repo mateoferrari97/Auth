@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -21,7 +22,9 @@ func (s *Server) Run(port string) {
 
 	log.Printf("Listening on port %s", port)
 
-	http.ListenAndServe(":"+port, s.router)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), s.router); err != nil {
+		panic(err)
+	}
 }
 
 func (s *Server) Wrap(method string, pattern string, handler http.HandlerFunc) {
