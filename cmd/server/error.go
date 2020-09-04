@@ -6,18 +6,18 @@ import (
 	"net/http"
 )
 
-type HandlerError struct {
+type handlerError struct {
 	StatusCode int
-	Error string
+	Error      string
 }
 
-func HandleError(err error) HandlerError {
+func handleError(err error) handlerError {
 	var e *internal.Error
 	if !errors.As(err, &e) {
 		e = internal.NewError(err.Error(), http.StatusInternalServerError)
 	}
 
-	return HandlerError{
+	return handlerError{
 		StatusCode: e.StatusCode,
 		Error:      e.Error(),
 	}

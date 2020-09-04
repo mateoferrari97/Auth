@@ -151,6 +151,7 @@ func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHa
 		}
 
 		http.SetCookie(w, c)
+
 		return internal.RespondJSON(w, nil, http.StatusOK)
 	}
 

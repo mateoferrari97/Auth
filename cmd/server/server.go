@@ -31,13 +31,13 @@ func (s *Server) Run(port string) {
 type HandlerFunc func(w http.ResponseWriter, r *http.Request) error
 
 func (s *Server) Wrap(method string, pattern string, handler HandlerFunc) {
-	wrapH :=  func(w http.ResponseWriter, r *http.Request) {
+	wrapH := func(w http.ResponseWriter, r *http.Request) {
 		err := handler(w, r)
 		if err == nil {
 			return
 		}
 
-		hErr := HandleError(err)
+		hErr := handleError(err)
 		_ = internal.RespondJSON(w, hErr, hErr.StatusCode)
 	}
 
