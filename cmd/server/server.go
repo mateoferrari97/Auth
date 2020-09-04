@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mateoferrari97/auth/internal"
 	"log"
 	"net/http"
 )
@@ -27,8 +28,20 @@ func (s *Server) Run(port string) {
 	}
 }
 
-func (s *Server) Wrap(method string, pattern string, handler http.HandlerFunc) {
-	s.router.HandleFunc(pattern, handler).Methods(method)
+type HandlerFunc func(w http.ResponseWriter, r *http.Request) error
+
+func (s *Server) Wrap(method string, pattern string, handler HandlerFunc) {
+	wrapH :=  func(w http.ResponseWriter, r *http.Request) {
+		err := handler(w, r)
+		if err == nil {
+			return
+		}
+
+		hErr := HandleError(err)
+		_ = internal.RespondJSON(w, hErr, hErr.StatusCode)
+	}
+
+	s.router.HandleFunc(pattern, wrapH).Methods(method)
 }
 
 func configPort(port string) string {

@@ -15,6 +15,12 @@ import (
 	"time"
 )
 
+var (
+	ErrResourceAlreadyExists = errors.New("resource already exists")
+	ErrInvalidToken          = errors.New("can't access to the resource. invalid token")
+	ErrAlteredTokenClaims    = errors.New("can't access to the resource. claims don't match from original token")
+	ErrResourceNotFound      = errors.New("resource not found")
+)
 var mySigningKey = os.Getenv("PRIVATE_KEY")
 
 const state = "random"
@@ -50,7 +56,7 @@ func NewService() *Service {
 
 func (s *Service) Register(newUser RegisterRequest) (string, error) {
 	if _, exist := s.DB[newUser.Email]; exist {
-		return "", fmt.Errorf("user already exists")
+		return "", ErrResourceAlreadyExists
 	}
 
 	id, err := uuid.NewV4()
@@ -113,12 +119,12 @@ func (s *Service) Authorize(token string) (User, error) {
 	}
 
 	if !t.Valid {
-		return User{}, errors.New("invalid token")
+		return User{}, ErrInvalidToken
 	}
 
 	c, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
-		return User{}, fmt.Errorf("invalid claims type: %v", err)
+		return User{}, ErrAlteredTokenClaims
 	}
 
 	subject, ok := c["sub"].(string)
@@ -132,7 +138,7 @@ func (s *Service) Authorize(token string) (User, error) {
 	}
 
 	if _, exist := s.DB[user.Email]; !exist {
-		return User{}, fmt.Errorf("user not found")
+		return User{}, ErrResourceNotFound
 	}
 
 	return user, nil
@@ -166,7 +172,7 @@ func (s *Service) LoginWithGoogleCallback(code string) (string, error) {
 
 	user, exist := s.DB[userInformation.Email]
 	if !exist {
-		return "", fmt.Errorf("user with email %s: not found", userInformation.Email)
+		return "", ErrResourceNotFound
 	}
 
 	t, err := newJWT(user)
