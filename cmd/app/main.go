@@ -11,10 +11,11 @@ func main() {
 	service := internal.NewService()
 
 	handler.Ping()
-	handler.RouteHome(service.Authorize)
+	handler.RouteMe(service.Authorize)
 	handler.RouteRegister(service.Register)
 	handler.RouteLoginWithGoogle(service.LoginWithGoogle)
 	handler.RouteLoginWithGoogleCallback(service.LoginWithGoogleCallback)
+	handler.RouteLogout()
 
 	server.Run(":8081")
 }
