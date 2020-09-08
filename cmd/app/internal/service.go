@@ -30,7 +30,7 @@ var config = &oauth2.Config{
 	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	Endpoint:     google.Endpoint,
-	RedirectURL:  fmt.Sprintf("http://localhost:8081/login/google/callback"),
+	RedirectURL:  "http://localhost:8081/login/google/callback",
 	Scopes: []string{
 		"https://www.googleapis.com/auth/userinfo.email",
 	},
