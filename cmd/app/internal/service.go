@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofrs/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"net/http"
-	"os"
-	"time"
 )
 
 var (
@@ -29,7 +30,7 @@ var config = &oauth2.Config{
 	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	Endpoint:     google.Endpoint,
-	RedirectURL:  fmt.Sprintf("http://localhost:8081/login/google/callback"),
+	RedirectURL:  "http://localhost:8081/login/google/callback",
 	Scopes: []string{
 		"https://www.googleapis.com/auth/userinfo.email",
 	},
