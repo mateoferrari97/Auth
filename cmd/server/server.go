@@ -2,10 +2,11 @@ package server
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/mateoferrari97/auth/internal"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/mateoferrari97/auth/internal"
 )
 
 const defaultPort = "8081"
@@ -18,14 +19,12 @@ func NewServer() *Server {
 	return &Server{router: mux.NewRouter()}
 }
 
-func (s *Server) Run(port string) {
+func (s *Server) Run(port string) error {
 	port = configPort(port)
 
 	log.Printf("Listening on port %s", port)
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), s.router); err != nil {
-		panic(err)
-	}
+	return http.ListenAndServe(fmt.Sprintf(":%s", port), s.router)
 }
 
 type HandlerFunc func(w http.ResponseWriter, r *http.Request) error
