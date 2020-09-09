@@ -1,0 +1,19 @@
+version: "3.3"
+services:
+ users:
+   build: .
+   environment:
+     - "PRIVATE_KEY=$PRIVATE_KEY"
+     - "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID"
+     - "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
+   ports:
+     - "8081:8081"
+ mysql:
+   image: "mysql/mysql-server"
+   ports:
+     - "3306:3306"
+   environment:
+     MYSQL_DATABASE: 'auth'
+     MYSQL_USER: 'user'
+     MYSQL_PASSWORD: 'password'
+     MYSQL_ROOT_PASSWORD: 'password'
