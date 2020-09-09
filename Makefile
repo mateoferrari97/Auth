@@ -10,5 +10,21 @@ fmt:
 	@go fmt ./...
 .PHONY: linter
 linter:
-	@echo "=> Executing golangci-lint $(if $(FLAGS), with flags: $(FLAGS))..."
-	@golangci-lint run ./... $(FLAGS)
+	@echo "=> Executing golangci-lint"
+	@golangci-lint run ./...
+.PHONY: up
+up:
+	@echo "=> Executing docker-compose up..."
+	@docker-compose up -d
+.PHONY: migrations
+migrations:
+	@echo "=> Migrating sql files..."
+	@docker exec -i $(id) mysql -u$(DATABASE_USER) -p$(DATABASE_PASSWORD) $(DATABASE_NAME) < cmd/app/migrations/init.sql
+.PHONY: terminal
+terminal:
+	@echo "=> Executing interactive mode in container"
+	@docker exec -it $(id) bash
+.PHONY: mysql-login
+mysql-login:
+	@echo "=> Executing interactive mode in container"
+	@docker exec -it $(id) mysql -u$(DATABASE_USER) -p$(DATABASE_PASSWORD)
