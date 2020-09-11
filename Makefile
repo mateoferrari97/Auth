@@ -22,9 +22,9 @@ migrations:
 	@docker exec -i $(id) mysql -u$(DATABASE_USER) -p$(DATABASE_PASSWORD) $(DATABASE_NAME) < cmd/app/migrations/init.sql
 .PHONY: terminal
 terminal:
-	@echo "=> Executing interactive mode in container"
+	@echo "=> Executing interactive mode in container: $(id)"
 	@docker exec -it $(id) bash
 .PHONY: mysql-login
 mysql-login:
-	@echo "=> Executing interactive mode in container"
+	@echo "=> Login into container database..."
 	@docker exec -it $(id) mysql -u$(DATABASE_USER) -p$(DATABASE_PASSWORD)

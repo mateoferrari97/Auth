@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -19,21 +18,14 @@ func main() {
 
 func run() error {
 	server := server.NewServer()
-	handler := internal.NewHandler(server)
-	service := internal.NewService()
 
-	dbSettings := fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s",
-		os.Getenv("DATABASE_USER"),
-		os.Getenv("DATABASE_PASSWORD"),
-		os.Getenv("DATABASE_NAME"),
-	)
-
-	db, err := sqlx.Connect("mysql", dbSettings)
+	repository, err := newUserRepository()
 	if err != nil {
-		return fmt.Errorf("instantiating db: %v", err)
+		return err
 	}
 
-	log.Printf("DB SUCCESS: %s", db.DriverName())
+	service := internal.NewService(repository)
+	handler := internal.NewHandler(server)
 
 	handler.Ping()
 	handler.RouteMe(service.Authorize)
@@ -43,4 +35,19 @@ func run() error {
 	handler.RouteLogout()
 
 	return server.Run(":8081")
+}
+
+func newUserRepository() (internal.Repository, error) {
+	dbSettings := fmt.Sprintf("%s:%s@tcp(db:3306)/%s",
+		os.Getenv("DATABASE_USER"),
+		os.Getenv("DATABASE_PASSWORD"),
+		os.Getenv("DATABASE_NAME"),
+	)
+
+	db, err := sqlx.Connect("mysql", dbSettings)
+	if err != nil {
+		return nil, fmt.Errorf("instantiating db: %v", err)
+	}
+
+	return internal.NewUserRepository(db), nil
 }

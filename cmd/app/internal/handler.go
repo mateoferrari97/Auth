@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mateoferrari97/auth/cmd/server"
-	"github.com/mateoferrari97/auth/internal"
-	"gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/mateoferrari97/auth/cmd/server"
+	"github.com/mateoferrari97/auth/internal"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 const (
@@ -47,12 +48,13 @@ func (h *Handler) Ping() {
 }
 
 type RegisterRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+	Firstname string `json:"firstname" validate:"required"`
+	Lastname  string `json:"lastname" validate:"required"`
+	Email     string `json:"email" validate:"required,email"`
+	Password  string `json:"password" validate:"required,min=8"`
 }
 
-type RegisterHandler func(req RegisterRequest) (string, error)
+type RegisterHandler func(req RegisterRequest) error
 
 func (h *Handler) RouteRegister(handler RegisterHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
@@ -65,19 +67,10 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 			return handleError(err)
 		}
 
-		token, err := handler(req)
-		if err != nil {
+		if err := handler(req); err != nil {
 			return handleError(err)
 		}
 
-		c := &http.Cookie{
-			Name:     "authorization",
-			Value:    token,
-			Path:     getHome,
-			HttpOnly: true,
-		}
-
-		http.SetCookie(w, c)
 		return internal.RespondJSON(w, nil, http.StatusOK)
 	}
 

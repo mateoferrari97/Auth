@@ -6,9 +6,17 @@ services:
       - "PRIVATE_KEY=$PRIVATE_KEY"
       - "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID"
       - "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
+      - "DATABASE_NAME=$DATABASE_NAME"
+      - "DATABASE_USER=$DATABASE_USER"
+      - "DATABASE_PASSWORD=$DATABASE_PASSWORD"
     ports:
       - "8081:8081"
+    depends_on:
+      - db
+    networks:
+      - auth-db
   db:
+    restart: always
     image: "mysql/mysql-server"
     ports:
       - "3306:3306"
@@ -17,3 +25,8 @@ services:
       MYSQL_USER: "$DATABASE_USER"
       MYSQL_PASSWORD: "$DATABASE_PASSWORD"
       MYSQL_ROOT_PASSWORD: "$DATABASE_PASSWORD"
+    networks:
+      - auth-db
+networks:
+  auth-db:
+    driver: bridge

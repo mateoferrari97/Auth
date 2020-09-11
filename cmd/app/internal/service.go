@@ -22,9 +22,8 @@ var (
 	ErrAlteredTokenClaims    = errors.New("can't access to the resource. claims don't match from original token")
 	ErrResourceNotFound      = errors.New("resource not found")
 )
-var mySigningKey = os.Getenv("PRIVATE_KEY")
 
-const state = "random"
+var mySigningKey = os.Getenv("PRIVATE_KEY")
 
 var config = &oauth2.Config{
 	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
@@ -36,78 +35,59 @@ var config = &oauth2.Config{
 	},
 }
 
+const state = "random"
+
+type Repository interface {
+	SaveUser(user User) error
+	GetUserByEmail(email string) (User, error)
+	FindUserByEmail(email string) error
+}
+
 type Service struct {
-	DB map[string]User
+	DB             map[string]User
+	UserRepository Repository
 }
 
 type User struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string `json:"id"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
 }
 
-func NewService() *Service {
+func NewService(repository Repository) *Service {
 	return &Service{
-		DB: make(map[string]User),
+		DB:             make(map[string]User),
+		UserRepository: repository,
 	}
 }
 
-func (s *Service) Register(newUser RegisterRequest) (string, error) {
-	if _, exist := s.DB[newUser.Email]; exist {
-		return "", ErrResourceAlreadyExists
+func (s *Service) Register(newUser RegisterRequest) error {
+	err := s.UserRepository.FindUserByEmail(newUser.Email)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return err
 	}
 
 	id, err := uuid.NewV4()
 	if err != nil {
-		return "", fmt.Errorf("creating user: %v", err)
+		return fmt.Errorf("creating user: %v", err)
 	}
 
 	b, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 10)
 	if err != nil {
-		return "", fmt.Errorf("securing password: %v", err)
+		return fmt.Errorf("generating password: %v", err)
 	}
 
 	user := User{
 		ID:        id.String(),
-		Name:      newUser.Name,
+		Firstname: newUser.Firstname,
+		Lastname:  newUser.Lastname,
 		Email:     newUser.Email,
 		Password:  string(b),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
 	}
 
-	s.DB[newUser.Email] = user
-
-	token, err := newJWT(user)
-	if err != nil {
-		return "", fmt.Errorf("authorizing user: %v", err)
-	}
-
-	return token, nil
-}
-
-func newJWT(user User) (string, error) {
-	u, err := json.Marshal(user)
-	if err != nil {
-		return "", fmt.Errorf("marshaling user: %v", err)
-	}
-
-	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
-		Subject:   string(u),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	t, err := token.SignedString([]byte(mySigningKey))
-	if err != nil {
-		return "", fmt.Errorf("creating token: %v", err)
-	}
-
-	return t, nil
+	return s.UserRepository.SaveUser(user)
 }
 
 func (s *Service) Authorize(token string) (User, error) {
@@ -133,12 +113,17 @@ func (s *Service) Authorize(token string) (User, error) {
 		return User{}, fmt.Errorf("something wrong happend while parsing subject")
 	}
 
-	var user User
-	if err := json.Unmarshal([]byte(subject), &user); err != nil {
+	var u User
+	if err := json.Unmarshal([]byte(subject), &u); err != nil {
 		return User{}, fmt.Errorf("decoding claims: %v", err)
 	}
 
-	if _, exist := s.DB[user.Email]; !exist {
+	user, err := s.UserRepository.GetUserByEmail(u.Email)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return User{}, err
+	}
+
+	if errors.Is(err, ErrNotFound) {
 		return User{}, ErrResourceNotFound
 	}
 
@@ -163,22 +148,47 @@ func (s *Service) LoginWithGoogleCallback(code string) (string, error) {
 
 	defer resp.Body.Close()
 
-	var userInformation struct {
+	var u struct {
 		Email string `json:"email"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&userInformation); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
 		return "", fmt.Errorf("decoding user information from google: %v", err)
 	}
 
-	user, exist := s.DB[userInformation.Email]
-	if !exist {
+	user, err := s.UserRepository.GetUserByEmail(u.Email)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return "", err
+	}
+
+	if errors.Is(err, ErrNotFound) {
 		return "", ErrResourceNotFound
 	}
 
 	t, err := newJWT(user)
 	if err != nil {
 		return "", fmt.Errorf("authorizing user: %v", err)
+	}
+
+	return t, nil
+}
+
+func newJWT(user User) (string, error) {
+	u, err := json.Marshal(user)
+	if err != nil {
+		return "", fmt.Errorf("marshaling user: %v", err)
+	}
+
+	claims := &jwt.StandardClaims{
+		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
+		Subject:   string(u),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	t, err := token.SignedString([]byte(mySigningKey))
+	if err != nil {
+		return "", fmt.Errorf("creating token: %v", err)
 	}
 
 	return t, nil
