@@ -1,6 +1,6 @@
 version: "3.3"
 services:
-  users:
+  auth:
     build: .
     environment:
       - "PRIVATE_KEY=$PRIVATE_KEY"

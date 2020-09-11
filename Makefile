@@ -14,7 +14,8 @@ linter:
 	@golangci-lint run ./...
 .PHONY: up
 up:
-	@echo "=> Executing docker-compose up..."
+	@echo "=> Building and executing docker-compose"
+	@docker-compose build
 	@docker-compose up -d
 .PHONY: migrations
 migrations:

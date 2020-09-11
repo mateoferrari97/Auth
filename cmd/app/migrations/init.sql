@@ -1,4 +1,4 @@
-CREATE TABLE user
+CREATE TABLE IF NOT EXISTS user
 (
     id           bigint auto_increment primary key,
     _id          varchar(128) not null,
@@ -8,7 +8,7 @@ CREATE TABLE user
     updated_at   datetime(3) default CURRENT_TIMESTAMP(3) not null
 );
 
-CREATE TABLE login
+CREATE TABLE IF NOT EXISTS login
 (
     id           bigint auto_increment primary key,
     email        varchar(128) not null,

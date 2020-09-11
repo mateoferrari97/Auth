@@ -85,11 +85,10 @@ func (r *UserRepository) GetUserByEmail(email string) (User, error) {
 		Firstname: u.Firstname,
 		Lastname:  u.Lastname,
 		Email:     u.Email,
-		Password:  u.Password,
 	}, nil
 }
 
-func (r *UserRepository) SaveUser(user User) error {
+func (r *UserRepository) SaveUser(newUser NewUser) error {
 	const (
 		insertUserIntoUserTable  = `INSERT INTO user (_id, firstname, lastname) VALUES (:_id, :firstname, :lastname)`
 		insertUserIntoLoginTable = `INSERT INTO login (email, password, user_id) VALUES (:email, :password, :user_id)`
@@ -101,9 +100,9 @@ func (r *UserRepository) SaveUser(user User) error {
 	}
 
 	result, err := tx.NamedExec(insertUserIntoUserTable, map[string]interface{}{
-		"_id":       user.ID,
-		"firstname": user.Firstname,
-		"lastname":  user.Lastname,
+		"_id":       newUser.ID,
+		"firstname": newUser.Firstname,
+		"lastname":  newUser.Lastname,
 	})
 
 	if err != nil {
@@ -116,8 +115,8 @@ func (r *UserRepository) SaveUser(user User) error {
 	}
 
 	_, err = tx.NamedExec(insertUserIntoLoginTable, map[string]interface{}{
-		"email":    user.Email,
-		"password": user.Password,
+		"email":    newUser.Email,
+		"password": newUser.Password,
 		"user_id":  lastID,
 	})
 

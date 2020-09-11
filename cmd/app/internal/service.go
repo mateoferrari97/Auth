@@ -38,7 +38,7 @@ var config = &oauth2.Config{
 const state = "random"
 
 type Repository interface {
-	SaveUser(user User) error
+	SaveUser(newUser NewUser) error
 	GetUserByEmail(email string) (User, error)
 	FindUserByEmail(email string) error
 }
@@ -48,12 +48,19 @@ type Service struct {
 	UserRepository Repository
 }
 
+type NewUser struct {
+	ID        string
+	Firstname string
+	Lastname  string
+	Email     string
+	Password  string
+}
+
 type User struct {
 	ID        string `json:"id"`
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
 	Email     string `json:"email"`
-	Password  string `json:"password"`
 }
 
 func NewService(repository Repository) *Service {
@@ -65,7 +72,11 @@ func NewService(repository Repository) *Service {
 
 func (s *Service) Register(newUser RegisterRequest) error {
 	err := s.UserRepository.FindUserByEmail(newUser.Email)
-	if err != nil && !errors.Is(err, ErrNotFound) {
+	if err == nil {
+		return ErrResourceAlreadyExists
+	}
+
+	if !errors.Is(err, ErrNotFound) {
 		return err
 	}
 
@@ -79,7 +90,7 @@ func (s *Service) Register(newUser RegisterRequest) error {
 		return fmt.Errorf("generating password: %v", err)
 	}
 
-	user := User{
+	user := NewUser{
 		ID:        id.String(),
 		Firstname: newUser.Firstname,
 		Lastname:  newUser.Lastname,
