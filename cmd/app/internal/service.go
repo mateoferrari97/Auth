@@ -141,8 +141,8 @@ func (s *Service) Authorize(token string) (User, error) {
 	return user, nil
 }
 
-func (s *Service) LoginWithGoogle() string {
-	return config.AuthCodeURL(state)
+func (s *Service) LoginWithGoogle() (string, error) {
+	return config.AuthCodeURL(state), nil
 }
 
 func (s *Service) LoginWithGoogleCallback(code string) (string, error) {
