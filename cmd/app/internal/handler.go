@@ -23,6 +23,12 @@ const (
 	getLoginWithGoogleCallback = "/login/google/callback"
 )
 
+var (
+	ErrBadRequest          = errors.New("bad request")
+	ErrUnprocessableEntity = errors.New("unprocessable entity")
+	ErrWeakPassword        = errors.New("weak password")
+)
+
 var _v = validator.New()
 
 type Wrapper interface {
@@ -60,7 +66,7 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		var req RegisterRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			return handleError(err)
+			return handleError(ErrUnprocessableEntity)
 		}
 
 		if err := validateRegisterInformation(req); err != nil {
@@ -71,7 +77,7 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 			return handleError(err)
 		}
 
-		return internal.RespondJSON(w, nil, http.StatusOK)
+		return internal.RespondJSON(w, nil, http.StatusCreated)
 	}
 
 	h.Wrap(http.MethodPost, postUsers, wrapH)
@@ -79,7 +85,7 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 
 func validateRegisterInformation(userInformation RegisterRequest) error {
 	if err := _v.Struct(userInformation); err != nil {
-		return err
+		return ErrUnprocessableEntity
 	}
 
 	return validatePassword(userInformation.Password)
@@ -103,18 +109,23 @@ func validatePassword(password string) error {
 		}
 
 		if !hasCharacter {
-			return errors.New("password is weak")
+			return ErrWeakPassword
 		}
 	}
 
 	return nil
 }
 
-type LoginWithGoogleHandler func() string
+type LoginWithGoogleHandler func() (string, error)
 
 func (h *Handler) RouteLoginWithGoogle(handler LoginWithGoogleHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
-		http.Redirect(w, r, handler(), http.StatusTemporaryRedirect)
+		resp, err := handler()
+		if err != nil {
+			return handleError(err)
+		}
+
+		http.Redirect(w, r, resp, http.StatusTemporaryRedirect)
 
 		return nil
 	}
@@ -128,7 +139,7 @@ func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHa
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		code := r.FormValue("code")
 		if code == "" {
-			return handleError(errors.New("code is required"))
+			return handleError(ErrBadRequest)
 		}
 
 		token, err := handler(code)
@@ -157,7 +168,6 @@ func (h *Handler) RouteLogout() {
 			Name:     "authorization",
 			Expires:  time.Now().Add(-1 * time.Hour),
 			MaxAge:   -1,
-			HttpOnly: true,
 		}
 
 		http.SetCookie(w, c)
@@ -192,6 +202,12 @@ func handleError(err error) error {
 	message := err.Error()
 
 	switch err {
+	case ErrBadRequest:
+		return internal.NewError(message, http.StatusBadRequest)
+	case ErrWeakPassword:
+		return internal.NewError(message, http.StatusBadRequest)
+	case ErrUnprocessableEntity:
+		return internal.NewError(message, http.StatusUnprocessableEntity)
 	case ErrResourceNotFound:
 		return internal.NewError(message, http.StatusNotFound)
 	case ErrInvalidToken:
