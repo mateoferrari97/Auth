@@ -1,23 +1,24 @@
-package internal
+package server
 
-import "fmt"
+import (
+	"errors"
+	"github.com/mateoferrari97/auth/internal"
+	"net/http"
+)
 
-type Error struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message"`
+type handlerError struct {
+	StatusCode int
+	Message    string
 }
 
-func NewError(message string, statusCode int) *Error {
-	return &Error{
-		StatusCode: statusCode,
-		Message:    message,
-	}
-}
-
-func (e *Error) Error() string {
-	if e == nil || e.StatusCode == 0 || e.Message == "" {
-		return "unexpected error"
+func handleError(err error) handlerError {
+	var e *internal.Error
+	if !errors.As(err, &e) {
+		e = internal.NewError(err.Error(), http.StatusInternalServerError)
 	}
 
-	return fmt.Sprintf("%d: %s", e.StatusCode, e.Message)
+	return handlerError{
+		StatusCode: e.StatusCode,
+		Message:    e.Error(),
+	}
 }
