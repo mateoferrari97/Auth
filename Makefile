@@ -1,5 +1,5 @@
 .PHONY: all
-all: dependencies fmt linter
+all: dependencies fmt linter test
 .PHONY: dependencies
 dependencies:
 	@echo "=> Executing go mod tidy for ensure dependencies..."
@@ -29,3 +29,9 @@ terminal:
 mysql-login:
 	@echo "=> Login into container database..."
 	@docker exec -it $(id) mysql -u$(DATABASE_USER) -p$(DATABASE_PASSWORD)
+.PHONY: test
+test:
+	@echo "=> Running tests"
+	@go test ./... -covermode=atomic -coverpkg=./... -count=1 -race;\
+	exit_code=$$?;\
+ 	exit $$exit_code
