@@ -8,7 +8,7 @@ import (
 
 type handlerError struct {
 	StatusCode int
-	Error      string
+	Message    string
 }
 
 func handleError(err error) handlerError {
@@ -19,6 +19,6 @@ func handleError(err error) handlerError {
 
 	return handlerError{
 		StatusCode: e.StatusCode,
-		Error:      e.Error(),
+		Message:    e.Error(),
 	}
 }
