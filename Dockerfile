@@ -15,8 +15,6 @@ WORKDIR /JWT-Auth
 
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
 
-RUN make
-
 WORKDIR /JWT-Auth/cmd/app
 
 RUN go build .

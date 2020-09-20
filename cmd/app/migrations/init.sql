@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS user
 CREATE TABLE IF NOT EXISTS login
 (
     id           bigint auto_increment primary key,
-    email        varchar(128) not null,
+    email        varchar(128) not null unique,
     password     varchar(128) not null,
     user_id      bigint  not null,
     constraint login_user_id_fk

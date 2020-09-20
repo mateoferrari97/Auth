@@ -165,9 +165,9 @@ func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHa
 func (h *Handler) RouteLogout() {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		c := &http.Cookie{
-			Name:     "authorization",
-			Expires:  time.Now().Add(-1 * time.Hour),
-			MaxAge:   -1,
+			Name:    "authorization",
+			Expires: time.Now().Add(-1 * time.Hour),
+			MaxAge:  -1,
 		}
 
 		http.SetCookie(w, c)

@@ -25,11 +25,11 @@ func TestError_EmptyValues(t *testing.T) {
 	}{
 		{
 			name: "0 status code",
-			err: NewError("0 status code", 0),
+			err:  NewError("0 status code", 0),
 		},
 		{
 			name: "empty message",
-			err: NewError("", http.StatusInternalServerError),
+			err:  NewError("", http.StatusInternalServerError),
 		},
 	}
 

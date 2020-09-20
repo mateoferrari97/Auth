@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -37,6 +36,10 @@ var config = &oauth2.Config{
 
 const state = "random"
 
+type GoogleClient interface {
+	GetUserEmailFromAccessToken(accessToken string) (string, error)
+}
+
 type Repository interface {
 	SaveUser(newUser NewUser) error
 	GetUserByEmail(email string) (User, error)
@@ -44,8 +47,8 @@ type Repository interface {
 }
 
 type Service struct {
-	DB             map[string]User
 	UserRepository Repository
+	Cli            GoogleClient
 }
 
 type NewUser struct {
@@ -65,7 +68,6 @@ type User struct {
 
 func NewService(repository Repository) *Service {
 	return &Service{
-		DB:             make(map[string]User),
 		UserRepository: repository,
 	}
 }
@@ -151,23 +153,12 @@ func (s *Service) LoginWithGoogleCallback(code string) (string, error) {
 		return "", fmt.Errorf("getting token from google: %v", err)
 	}
 
-	path := fmt.Sprintf("https://www.googleapis.com/oauth2/v2/userinfo?access_token=%s", token.AccessToken)
-	resp, err := http.Get(path)
+	email, err := s.Cli.GetUserEmailFromAccessToken(token.AccessToken)
 	if err != nil {
-		return "", fmt.Errorf("getting user information: %v", err)
+		return "", fmt.Errorf("getting user email from google: %v", err)
 	}
 
-	defer resp.Body.Close()
-
-	var u struct {
-		Email string `json:"email"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
-		return "", fmt.Errorf("decoding user information from google: %v", err)
-	}
-
-	user, err := s.UserRepository.GetUserByEmail(u.Email)
+	user, err := s.UserRepository.GetUserByEmail(email)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return "", err
 	}
