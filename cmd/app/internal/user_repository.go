@@ -28,9 +28,9 @@ type user struct {
 	Password  string `db:"password"`
 }
 
-func (r *UserRepository) FindUserByEmail(email string) error {
-	const findUserByEmail = `SELECT COUNT(1) FROM login WHERE email = :email`
+const findUserByEmail = `SELECT COUNT(1) FROM login WHERE email = :email`
 
+func (r *UserRepository) FindUserByEmail(email string) error {
 	stmt, err := r.db.PrepareNamed(findUserByEmail)
 	if err != nil {
 		return err
@@ -42,7 +42,6 @@ func (r *UserRepository) FindUserByEmail(email string) error {
 
 	var count int
 	err = stmt.Get(&count, queryParams)
-
 	if err != nil {
 		return err
 	}
@@ -88,7 +87,7 @@ func (r *UserRepository) GetUserByEmail(email string) (User, error) {
 	}, nil
 }
 
-func (r *UserRepository) SaveUser(newUser NewUser) error {
+func (r *UserRepository) SaveUser(newUser NewUser) (err error) {
 	const (
 		insertUserIntoUserTable  = `INSERT INTO user (_id, firstname, lastname) VALUES (:_id, :firstname, :lastname)`
 		insertUserIntoLoginTable = `INSERT INTO login (email, password, user_id) VALUES (:email, :password, :user_id)`
@@ -99,12 +98,17 @@ func (r *UserRepository) SaveUser(newUser NewUser) error {
 		return fmt.Errorf("beggining tx: %v", err)
 	}
 
+	defer func() {
+		if err != nil {
+			tx.Rollback() // nolint
+		}
+	}()
+
 	result, err := tx.NamedExec(insertUserIntoUserTable, map[string]interface{}{
 		"_id":       newUser.ID,
 		"firstname": newUser.Firstname,
 		"lastname":  newUser.Lastname,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -119,7 +123,6 @@ func (r *UserRepository) SaveUser(newUser NewUser) error {
 		"password": newUser.Password,
 		"user_id":  lastID,
 	})
-
 	if err != nil {
 		return err
 	}
