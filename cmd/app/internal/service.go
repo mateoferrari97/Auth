@@ -10,16 +10,10 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofrs/uuid"
+	"github.com/mateoferrari97/auth/internal"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-)
-
-var (
-	ErrResourceAlreadyExists = errors.New("resource already exists")
-	ErrInvalidToken          = errors.New("can't access to the resource. invalid token")
-	ErrAlteredTokenClaims    = errors.New("can't access to the resource. claims don't match from original token")
-	ErrResourceNotFound      = errors.New("resource not found")
 )
 
 var mySigningKey = os.Getenv("PRIVATE_KEY")
@@ -36,7 +30,7 @@ var config = &oauth2.Config{
 
 const state = "random"
 
-type GoogleClient interface {
+type Client interface {
 	GetUserEmailFromAccessToken(accessToken string) (string, error)
 }
 
@@ -48,7 +42,7 @@ type Repository interface {
 
 type Service struct {
 	UserRepository Repository
-	Cli            GoogleClient
+	Client         Client
 }
 
 type NewUser struct {
@@ -66,19 +60,20 @@ type User struct {
 	Email     string `json:"email"`
 }
 
-func NewService(repository Repository) *Service {
+func NewService(repository Repository, client Client) *Service {
 	return &Service{
 		UserRepository: repository,
+		Client:         client,
 	}
 }
 
 func (s *Service) Register(newUser RegisterRequest) error {
 	err := s.UserRepository.FindUserByEmail(newUser.Email)
 	if err == nil {
-		return ErrResourceAlreadyExists
+		return fmt.Errorf("%w: user already exists", internal.ErrResourceAlreadyExists)
 	}
 
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, internal.ErrResourceNotFound) {
 		return err
 	}
 
@@ -113,17 +108,17 @@ func (s *Service) Authorize(token string) (User, error) {
 	}
 
 	if !t.Valid {
-		return User{}, ErrInvalidToken
+		return User{}, internal.ErrInvalidToken
 	}
 
 	c, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
-		return User{}, ErrAlteredTokenClaims
+		return User{}, internal.ErrAlteredTokenClaims
 	}
 
 	subject, ok := c["sub"].(string)
 	if !ok {
-		return User{}, fmt.Errorf("something wrong happend while parsing subject")
+		return User{}, errors.New("something wrong happened while parsing subject")
 	}
 
 	var u User
@@ -132,12 +127,8 @@ func (s *Service) Authorize(token string) (User, error) {
 	}
 
 	user, err := s.UserRepository.GetUserByEmail(u.Email)
-	if err != nil && !errors.Is(err, ErrNotFound) {
+	if err != nil {
 		return User{}, err
-	}
-
-	if errors.Is(err, ErrNotFound) {
-		return User{}, ErrResourceNotFound
 	}
 
 	return user, nil
@@ -153,18 +144,18 @@ func (s *Service) LoginWithGoogleCallback(code string) (string, error) {
 		return "", fmt.Errorf("getting token from google: %v", err)
 	}
 
-	email, err := s.Cli.GetUserEmailFromAccessToken(token.AccessToken)
+	email, err := s.Client.GetUserEmailFromAccessToken(token.AccessToken)
 	if err != nil {
 		return "", fmt.Errorf("getting user email from google: %v", err)
 	}
 
 	user, err := s.UserRepository.GetUserByEmail(email)
-	if err != nil && !errors.Is(err, ErrNotFound) {
+	if err != nil && !errors.Is(err, internal.ErrResourceAlreadyExists) {
 		return "", err
 	}
 
-	if errors.Is(err, ErrNotFound) {
-		return "", ErrResourceNotFound
+	if errors.Is(err, internal.ErrResourceAlreadyExists) {
+		return "", internal.ErrResourceNotFound
 	}
 
 	t, err := newJWT(user)

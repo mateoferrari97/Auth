@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/mateoferrari97/auth/internal"
 )
 
 const defaultPort = "8081"
@@ -36,8 +35,7 @@ func (s *Server) Wrap(method string, pattern string, handler HandlerFunc) {
 			return
 		}
 
-		hErr := handleError(err)
-		_ = internal.RespondJSON(w, hErr, hErr.StatusCode)
+		handleError(w, err)
 	}
 
 	s.Router.HandleFunc(pattern, wrapH).Methods(method)

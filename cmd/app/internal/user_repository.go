@@ -6,9 +6,8 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/mateoferrari97/auth/internal"
 )
-
-var ErrNotFound = errors.New("repository: resource not found")
 
 type UserRepository struct {
 	db *sqlx.DB
@@ -47,19 +46,19 @@ func (r *UserRepository) FindUserByEmail(email string) error {
 	}
 
 	if count == 0 {
-		return ErrNotFound
+		return fmt.Errorf("%w: db not found", internal.ErrResourceNotFound)
 	}
 
 	return nil
 }
 
-func (r *UserRepository) GetUserByEmail(email string) (User, error) {
-	const getUserByEmail = `SELECT user._id, user.firstname, user.lastname, login.email, login.password
+const getUserByEmail = `SELECT user._id, user.firstname, user.lastname, login.email, login.password
 								FROM login
 								INNER JOIN user
 								ON user.id = login.user_id
 								WHERE email = :email`
 
+func (r *UserRepository) GetUserByEmail(email string) (User, error) {
 	stmt, err := r.db.PrepareNamed(getUserByEmail)
 	if err != nil {
 		return User{}, err
@@ -76,7 +75,7 @@ func (r *UserRepository) GetUserByEmail(email string) (User, error) {
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return User{}, ErrNotFound
+		return User{}, fmt.Errorf("%w: db not found", internal.ErrResourceNotFound)
 	}
 
 	return User{ // nolint
@@ -87,12 +86,12 @@ func (r *UserRepository) GetUserByEmail(email string) (User, error) {
 	}, nil
 }
 
-func (r *UserRepository) SaveUser(newUser NewUser) (err error) {
-	const (
-		insertUserIntoUserTable  = `INSERT INTO user (_id, firstname, lastname) VALUES (:_id, :firstname, :lastname)`
-		insertUserIntoLoginTable = `INSERT INTO login (email, password, user_id) VALUES (:email, :password, :user_id)`
-	)
+const (
+	insertUserIntoUserTable  = `INSERT INTO user (_id, firstname, lastname) VALUES (:_id, :firstname, :lastname)`
+	insertUserIntoLoginTable = `INSERT INTO login (email, password, user_id) VALUES (:email, :password, :user_id)`
+)
 
+func (r *UserRepository) SaveUser(newUser NewUser) (err error) {
 	tx, err := r.db.Beginx()
 	if err != nil {
 		return fmt.Errorf("beggining tx: %v", err)

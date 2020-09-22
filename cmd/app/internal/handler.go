@@ -2,7 +2,6 @@ package internal
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,12 +20,6 @@ const (
 	getLogout                  = "/logout"
 	getLoginWithGoogle         = "/login/google"
 	getLoginWithGoogleCallback = "/login/google/callback"
-)
-
-var (
-	ErrBadRequest          = errors.New("bad request")
-	ErrUnprocessableEntity = errors.New("unprocessable entity")
-	ErrWeakPassword        = errors.New("weak password")
 )
 
 var _v = validator.New()
@@ -66,15 +59,15 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		var req RegisterRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			return handleError(ErrUnprocessableEntity)
+			return fmt.Errorf("decoding request: %w: %v", internal.ErrUnprocessableEntity, err)
 		}
 
 		if err := validateRegisterInformation(req); err != nil {
-			return handleError(err)
+			return fmt.Errorf("validating request: %w", err)
 		}
 
 		if err := handler(req); err != nil {
-			return handleError(err)
+			return err
 		}
 
 		return internal.RespondJSON(w, nil, http.StatusCreated)
@@ -85,7 +78,7 @@ func (h *Handler) RouteRegister(handler RegisterHandler) {
 
 func validateRegisterInformation(userInformation RegisterRequest) error {
 	if err := _v.Struct(userInformation); err != nil {
-		return ErrUnprocessableEntity
+		return fmt.Errorf("%w: %v", internal.ErrUnprocessableEntity, err)
 	}
 
 	return validatePassword(userInformation.Password)
@@ -109,7 +102,7 @@ func validatePassword(password string) error {
 		}
 
 		if !hasCharacter {
-			return ErrWeakPassword
+			return internal.ErrWeakPassword
 		}
 	}
 
@@ -122,7 +115,7 @@ func (h *Handler) RouteLoginWithGoogle(handler LoginWithGoogleHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		resp, err := handler()
 		if err != nil {
-			return handleError(err)
+			return err
 		}
 
 		http.Redirect(w, r, resp, http.StatusTemporaryRedirect)
@@ -139,12 +132,12 @@ func (h *Handler) RouteLoginWithGoogleCallback(handler LoginWithGoogleCallbackHa
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		code := r.FormValue("code")
 		if code == "" {
-			return handleError(ErrBadRequest)
+			return fmt.Errorf("%w: code is required", internal.ErrBadRequest)
 		}
 
 		token, err := handler(code)
 		if err != nil {
-			return handleError(err)
+			return err
 		}
 
 		c := &http.Cookie{
@@ -184,39 +177,16 @@ func (h *Handler) RouteMe(handler AuthorizeMeHandler) {
 	wrapH := func(w http.ResponseWriter, r *http.Request) error {
 		c, err := r.Cookie("authorization")
 		if err != nil {
-			return handleError(ErrInvalidToken)
+			return fmt.Errorf("%w: authorization cookie is required", internal.ErrInvalidToken)
 		}
 
 		user, err := handler(c.Value)
 		if err != nil {
-			return handleError(err)
+			return err
 		}
 
 		return internal.RespondJSON(w, user, http.StatusOK)
 	}
 
 	h.Wrap(http.MethodGet, getMe, wrapH)
-}
-
-func handleError(err error) error {
-	message := err.Error()
-
-	switch err {
-	case ErrBadRequest:
-		return internal.NewError(message, http.StatusBadRequest)
-	case ErrWeakPassword:
-		return internal.NewError(message, http.StatusBadRequest)
-	case ErrUnprocessableEntity:
-		return internal.NewError(message, http.StatusUnprocessableEntity)
-	case ErrResourceNotFound:
-		return internal.NewError(message, http.StatusNotFound)
-	case ErrInvalidToken:
-		return internal.NewError(message, http.StatusForbidden)
-	case ErrAlteredTokenClaims:
-		return internal.NewError(message, http.StatusForbidden)
-	case ErrResourceAlreadyExists:
-		return internal.NewError(message, http.StatusConflict)
-	default:
-		return internal.NewError(message, http.StatusInternalServerError)
-	}
 }

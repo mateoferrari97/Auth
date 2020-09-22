@@ -56,7 +56,7 @@ func TestHandler_RouteRegister_UnprocessableEntityError(t *testing.T) {
 	})
 
 	b := []byte(`{
-		"firstname": "Other fields are missing",
+		"firstname": "Other fields are missing"
 	}`)
 
 	// When
@@ -73,8 +73,7 @@ func TestHandler_RouteRegister_UnprocessableEntityError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
-	require.Equal(t, "422: unprocessable entity", m)
+	require.Equal(t, "validating request: unprocessable entity: Key: 'RegisterRequest.Lastname' Error:Field validation for 'Lastname' failed on the 'required' tag\nKey: 'RegisterRequest.Email' Error:Field validation for 'Email' failed on the 'required' tag\nKey: 'RegisterRequest.Password' Error:Field validation for 'Password' failed on the 'required' tag", m)
 }
 
 func TestHandler_RouteRegister_PasswordMinLengthError(t *testing.T) {
@@ -107,8 +106,7 @@ func TestHandler_RouteRegister_PasswordMinLengthError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
-	require.Equal(t, "422: unprocessable entity", m)
+	require.Equal(t, "validating request: unprocessable entity: Key: 'RegisterRequest.Password' Error:Field validation for 'Password' failed on the 'min' tag", m)
 }
 
 func TestHandler_RouteRegister_WeakPasswordError(t *testing.T) {
@@ -141,8 +139,7 @@ func TestHandler_RouteRegister_WeakPasswordError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	require.Equal(t, "400: weak password", m)
+	require.Equal(t, "validating request: weak password", m)
 }
 
 func TestHandler_RouteRegister_HandlerError(t *testing.T) {
@@ -175,8 +172,7 @@ func TestHandler_RouteRegister_HandlerError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	require.Equal(t, "500: internal server error", m)
+	require.Equal(t, "internal server error", m)
 }
 
 func TestHandler_RouteLoginWithGoogle(t *testing.T) {
@@ -226,8 +222,7 @@ func TestHandler_RouteLoginWithGoogle_HandlerError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	require.Equal(t, "500: internal server error", m)
+	require.Equal(t, "internal server error", m)
 }
 
 func TestHandler_RouteLoginWithGoogleCallback(t *testing.T) {
@@ -288,8 +283,7 @@ func TestHandler_RouteLoginWithGoogleCallback_MissingCodeError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	require.Equal(t, "400: bad request", m)
+	require.Equal(t, "bad request: code is required", m)
 }
 
 func TestHandler_RouteMe(t *testing.T) {
@@ -338,7 +332,6 @@ func TestHandler_RouteMe(t *testing.T) {
 	require.Equal(t, "luken", r.Firstname)
 	require.Equal(t, "straka", r.Lastname)
 	require.Equal(t, "mateo.ferrari97@gmail.com", r.Email)
-
 }
 
 func TestHandler_RouteMe_MissingTokenError(t *testing.T) {
@@ -371,8 +364,7 @@ func TestHandler_RouteMe_MissingTokenError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusForbidden, resp.StatusCode)
-	require.Equal(t, "403: can't access to the resource. invalid token", m)
+	require.Equal(t, "can't access to the resource. invalid token: authorization cookie is required", m)
 }
 
 func TestHandler_RouteMe_HandlerError(t *testing.T) {
@@ -404,8 +396,7 @@ func TestHandler_RouteMe_HandlerError(t *testing.T) {
 	m := decodeErrorMessageFromBody(resp.Body)
 
 	// Then
-	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	require.Equal(t, "500: internal server error", m)
+	require.Equal(t, "internal server error", m)
 }
 
 func TestHandler_RouteLogout(t *testing.T) {

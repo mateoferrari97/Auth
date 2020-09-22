@@ -115,7 +115,7 @@ func TestFindUserByEmail_NotFound(t *testing.T) {
 	err = r.FindUserByEmail(email)
 
 	// Then
-	require.EqualError(t, err, "repository: resource not found")
+	require.EqualError(t, err, "resource not found: db not found")
 }
 
 func TestGetUserByEmail(t *testing.T) {
@@ -247,7 +247,7 @@ func TestGetUserByEmail_NotFound(t *testing.T) {
 	_, err = r.GetUserByEmail(email)
 
 	// Then
-	require.EqualError(t, err, "repository: resource not found")
+	require.EqualError(t, err, "resource not found: db not found")
 }
 
 func TestSaveUser(t *testing.T) {

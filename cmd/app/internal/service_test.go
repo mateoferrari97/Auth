@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/mateoferrari97/auth/internal"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -39,10 +40,10 @@ func TestRegister(t *testing.T) {
 	}
 
 	r := &repository{}
-	r.On("FindUserByEmail", u.Email).Return(ErrNotFound)
+	r.On("FindUserByEmail", u.Email).Return(internal.ErrResourceNotFound)
 	r.On("SaveUser", mock.AnythingOfType("NewUser")).Return(nil)
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	err := s.Register(u)
@@ -63,13 +64,13 @@ func TestRegister_UserAlreadyExists(t *testing.T) {
 	r := &repository{}
 	r.On("FindUserByEmail", u.Email).Return(nil)
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	err := s.Register(u)
 
 	// Then
-	require.EqualError(t, err, "resource already exists")
+	require.EqualError(t, err, "resource already exists: user already exists")
 }
 
 func TestRegister_FindingUserByEmail_InternalServerError(t *testing.T) {
@@ -84,7 +85,7 @@ func TestRegister_FindingUserByEmail_InternalServerError(t *testing.T) {
 	r := &repository{}
 	r.On("FindUserByEmail", u.Email).Return(errors.New("repository error"))
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	err := s.Register(u)
@@ -103,10 +104,10 @@ func TestRegister_SavingUser_InternalServerError(t *testing.T) {
 	}
 
 	r := &repository{}
-	r.On("FindUserByEmail", u.Email).Return(ErrNotFound)
+	r.On("FindUserByEmail", u.Email).Return(internal.ErrResourceNotFound)
 	r.On("SaveUser", mock.AnythingOfType("NewUser")).Return(errors.New("repository error"))
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	err := s.Register(u)
@@ -129,7 +130,7 @@ func TestAuthorize(t *testing.T) {
 	r := &repository{}
 	r.On("GetUserByEmail", u.Email).Return(u, nil)
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	resp, err := s.Authorize(token)
@@ -147,7 +148,7 @@ func TestAuthorize(t *testing.T) {
 func TestAuthorize_ParsingTokenError(t *testing.T) {
 	// Given
 	token := "invalid token"
-	s := NewService(&repository{})
+	s := NewService(&repository{}, nil)
 
 	// When
 	_, err := s.Authorize(token)
@@ -170,7 +171,7 @@ func TestAuthorize_RepositoryInternalServerError(t *testing.T) {
 	r := &repository{}
 	r.On("GetUserByEmail", u.Email).Return(User{}, errors.New("internal server error"))
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	_, err := s.Authorize(token)
@@ -191,9 +192,9 @@ func TestAuthorize_RepositoryNotFoundError(t *testing.T) {
 	token, _ := _newJWT(u)
 
 	r := &repository{}
-	r.On("GetUserByEmail", u.Email).Return(User{}, ErrNotFound)
+	r.On("GetUserByEmail", u.Email).Return(User{}, internal.ErrResourceNotFound)
 
-	s := NewService(r)
+	s := NewService(r, nil)
 
 	// When
 	_, err := s.Authorize(token)
@@ -204,7 +205,7 @@ func TestAuthorize_RepositoryNotFoundError(t *testing.T) {
 
 func TestLoginWithGoogle(t *testing.T) {
 	// Given
-	s := NewService(&repository{})
+	s := NewService(&repository{}, nil)
 	expectedURL := "https://accounts.google.com/o/oauth2/auth?client_id=176380119677-5r99e6b9jqho14cvfpc0inmeb1m48gkr.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A8081%2Flogin%2Fgoogle%2Fcallback&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&state=random"
 
 	// When
@@ -219,7 +220,7 @@ func TestLoginWithGoogle(t *testing.T) {
 
 func TestLoginWithGoogle_Error(t *testing.T) {
 	// Given
-	s := NewService(&repository{})
+	s := NewService(&repository{}, nil)
 	expectedURL := "https://accounts.google.com/o/oauth2/auth?client_id=176380119677-5r99e6b9jqho14cvfpc0inmeb1m48gkr.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A8081%2Flogin%2Fgoogle%2Fcallback&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&state=random"
 
 	// When

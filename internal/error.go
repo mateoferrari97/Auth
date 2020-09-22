@@ -1,6 +1,19 @@
 package internal
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	ErrBadRequest            = errors.New("bad request")
+	ErrUnprocessableEntity   = errors.New("unprocessable entity")
+	ErrWeakPassword          = errors.New("weak password")
+	ErrResourceAlreadyExists = errors.New("resource already exists")
+	ErrInvalidToken          = errors.New("can't access to the resource. invalid token")
+	ErrAlteredTokenClaims    = errors.New("can't access to the resource. claims don't match from original token")
+	ErrResourceNotFound      = errors.New("resource not found")
+)
 
 type Error struct {
 	StatusCode int    `json:"status_code"`

@@ -2,23 +2,33 @@ package server
 
 import (
 	"errors"
-	"github.com/mateoferrari97/auth/internal"
 	"net/http"
+
+	"github.com/mateoferrari97/auth/internal"
 )
 
-type handlerError struct {
-	StatusCode int
-	Message    string
-}
+func handleError(w http.ResponseWriter, err error) {
+	message := err.Error()
 
-func handleError(err error) handlerError {
 	var e *internal.Error
-	if !errors.As(err, &e) {
-		e = internal.NewError(err.Error(), http.StatusInternalServerError)
+	switch errors.Unwrap(err) {
+	case internal.ErrBadRequest:
+		e = internal.NewError(message, http.StatusBadRequest)
+	case internal.ErrWeakPassword:
+		e = internal.NewError(message, http.StatusBadRequest)
+	case internal.ErrUnprocessableEntity:
+		e = internal.NewError(message, http.StatusUnprocessableEntity)
+	case internal.ErrResourceNotFound:
+		e = internal.NewError(message, http.StatusNotFound)
+	case internal.ErrInvalidToken:
+		e = internal.NewError(message, http.StatusForbidden)
+	case internal.ErrAlteredTokenClaims:
+		e = internal.NewError(message, http.StatusForbidden)
+	case internal.ErrResourceAlreadyExists:
+		e = internal.NewError(message, http.StatusConflict)
+	default:
+		e = internal.NewError(message, http.StatusInternalServerError)
 	}
 
-	return handlerError{
-		StatusCode: e.StatusCode,
-		Message:    e.Error(),
-	}
+	_ = internal.RespondJSON(w, e, e.StatusCode)
 }

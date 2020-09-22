@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/mateoferrari97/auth/cmd/app/internal"
+	"github.com/mateoferrari97/auth/cmd/app/internal/client"
 	"github.com/mateoferrari97/auth/cmd/server"
 )
 
@@ -24,7 +26,8 @@ func run() error {
 		return err
 	}
 
-	service := internal.NewService(repository)
+	client := client.NewClient(http.DefaultClient)
+	service := internal.NewService(repository, client)
 	handler := internal.NewHandler(server)
 
 	handler.Ping()
